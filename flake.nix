@@ -32,5 +32,30 @@
           # default to the system tools.
           packages.default = pkgs.writeShellScriptBin "nocommit-pre-commit" (builtins.readFile ./pre-commit);
         };
+      flake = {
+        homeModules.default =
+          {
+            config,
+            lib,
+            pkgs,
+            ...
+          }:
+          let
+            cfg = config.programs.nocommit;
+          in
+          {
+            options.programs.nocommit = {
+              enable = lib.mkEnableOption "Prevent committing debug & private code using NOCOMMIT tags";
+              package = lib.mkOption {
+                type = lib.types.package;
+                default = self.packages.${pkgs.stdenv.hostPlatform.system}.default;
+              };
+            };
+            config = lib.mkIf cfg.enable {
+              home.packages = [ cfg.package ];
+              programs.git.hooks.pre-commit = lib.getExe cfg.package;
+            };
+          };
+      };
     });
 }
