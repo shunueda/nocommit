@@ -53,6 +53,7 @@
             };
             config = lib.mkIf cfg.enable {
               home.packages = [ cfg.package ];
+              # TODO: https://github.blog/open-source/git/highlights-from-git-2-54/#h-config-based-hooks 👀
               programs.git.hooks.pre-commit = lib.getExe cfg.package;
             };
           };
