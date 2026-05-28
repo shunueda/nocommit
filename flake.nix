@@ -50,12 +50,32 @@
                 type = lib.types.package;
                 default = self.packages.${pkgs.stdenv.hostPlatform.system}.default;
               };
+
+              enableGitIntegration = lib.mkOption {
+                type = lib.types.bool;
+                default = true;
+                description = "Configure a pre-commit hook automatically.";
+              };
+
+              useConfigBasedHook = lib.mkEnableOption "Git 2.54+ config-based hook instead of core.hooksPath";
             };
-            config = lib.mkIf cfg.enable {
-              home.packages = [ cfg.package ];
-              # TODO: https://github.blog/open-source/git/highlights-from-git-2-54/#h-config-based-hooks 👀
-              programs.git.hooks.pre-commit = lib.getExe cfg.package;
-            };
+
+            config = lib.mkMerge [
+              (lib.mkIf cfg.enable { home.packages = [ cfg.package ]; })
+
+              (lib.mkIf (cfg.enable && cfg.enableGitIntegration && !cfg.useConfigBasedHook) {
+                programs.git.hooks.pre-commit = lib.getExe cfg.package;
+              })
+
+              (lib.mkIf (cfg.enable && cfg.enableGitIntegration && cfg.useConfigBasedHook) {
+                programs.git.settings = {
+                  hook.nocommit = {
+                    event = "pre-commit";
+                    command = lib.getExe cfg.package;
+                  };
+                };
+              })
+            ];
           };
       };
     });
